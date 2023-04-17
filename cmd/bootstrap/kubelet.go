@@ -14,6 +14,13 @@ import (
 const ClusterCADir = "/etc/kubernetes/pki"
 const ClusterCAPath = ClusterCADir + "/ca.crt"
 
+// The path where the kubelet expects its various configurs to exist.
+// These are hard coded into kios' init, so cannot be changed here.
+const KubeletKubeconfigPath = "/etc/kubernetes/kubelet.conf"
+const KubeletConfigurationPath = "/var/lib/kubelet/config.yaml"
+const CredentialProviderConfigPath = "/etc/kubernetes/credential-providers.yaml"
+
+
 // Saves the given cluster CA to file after first base 64 decoding it
 func saveClusterCA(ca string) error {
   if err := os.MkdirAll("/host" + ClusterCADir, 0755); err != nil {
@@ -75,7 +82,7 @@ func saveKubeConfig(config *MetadataInformation, imds *ImdsSession) error {
     return fmt.Errorf("Could not marshal KubeConfig YAML: %s", err)
   }
 
-  if err = os.WriteFile("/tmp/kubeconfig", kubeConfig, 0644); err != nil {
+  if err = os.WriteFile("/host" + KubeletKubeconfigPath, kubeConfig, 0644); err != nil {
     return fmt.Errorf("Could not write Kubeconfig to disk: %s", err)
   }
 
@@ -94,7 +101,7 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
   kubeletConfig.ProviderID = "aws:///" + az + "/" + instanceId
 
   kubelet, _ := yaml.Marshal(&kubeletConfig)
-  os.WriteFile("/tmp/kubelet.yaml", kubelet, 0644)
+  os.WriteFile("/host" + KubeletConfigurationPath, kubelet, 0644)
 
   return nil
 }
@@ -117,7 +124,7 @@ func saveCredentialProviderConfig() error {
   })
 
   providerConfig, _ := yaml.Marshal(&config)
-  os.WriteFile("/tmp/credential-providers.yaml", providerConfig, 0644)
+  os.WriteFile("/host" + CredentialProviderConfigPath, providerConfig, 0644)
 
   return nil
 }
