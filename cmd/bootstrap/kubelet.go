@@ -11,14 +11,21 @@ import (
   kubeconfig "k8s.io/client-go/tools/clientcmd/api/v1"
 )
 
+const ClusterCADir = "/etc/kubernetes/pki"
+const ClusterCAPath = ClusterCADir + "/ca.crt"
+
 // Saves the given cluster CA to file after first base 64 decoding it
 func saveClusterCA(ca string) error {
+  if err := os.MkdirAll("/host" + ClusterCADir, 0755); err != nil {
+    return fmt.Errorf("Could not create Cluster CA Directory: %s", err)
+  }
+
   clusterCA, err := base64.StdEncoding.DecodeString(ca)
   if err != nil {
     return fmt.Errorf("Could not decode CA certificate: %s", err)
   }
 
-  if err = os.WriteFile("/tmp/ca.cert", clusterCA, 0644); err != nil {
+  if err = os.WriteFile("/host" + ClusterCAPath, clusterCA, 0644); err != nil {
     return fmt.Errorf("Could not write CA certificate to disk: %s", err)
   }
 
@@ -37,7 +44,7 @@ func saveKubeConfig(config *MetadataInformation, imds *ImdsSession) error {
       Name: "default",
       Cluster: kubeconfig.Cluster{
         Server: config.ApiServer.Endpoint,
-        CertificateAuthority: "/tmp/ca.cert",
+        CertificateAuthority: ClusterCAPath,
       },
     }},
     AuthInfos: []kubeconfig.NamedAuthInfo{kubeconfig.NamedAuthInfo{
