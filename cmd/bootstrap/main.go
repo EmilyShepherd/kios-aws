@@ -7,7 +7,7 @@ import (
   "io"
 )
 
-const BinaryDstDir = "/host/usr/libexec/kubernetes/kubelet-plugin/credential-provider/exec/"
+const BinaryDstDir = "/host/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec/"
 
 func copyBinaries(binaries []string) error {
   if err := os.MkdirAll(BinaryDstDir, 0755); err != nil {
