@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: aws-bootstrap
+  namespace: kube-system
+spec:
+  restartPolicy: OnFailure
+  containers:
+  - image: emilyls/aws-bootstrap:0.0.0-test2
+    name: aws-bootstrap
+    volumeMounts:
+    - mountPath: /host/var/lib/kubelet
+      name: kubelet
+    - mountPath: /host/etc/kubernetes
+      name: etc
+    - mountPath: /host/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
+      name: credential-provider
+    securityContext:
+      # Running as root is required so that files can be created with
+      # the correct permissions
+      runAsNonRoot: false
+      capabilities:
+        drop:
+        - ALL
+  hostNetwork: true
+  priorityClassName: system-node-critical
+  tolerations:
+  - operator: Exists
+  volumes:
+  - hostPath:
+      path: /etc/kubernetes
+      type: DirectoryOrCreate
+    name: etc
+  - hostPath:
+      path: /var/lib/kubelet
+      # We expect this directory to exist (if it doesn't kubelet is
+      # running in some non-standard way, and things will break)
+      type: Directory
+    name: kubelet
+  - hostPath:
+      path: /usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
+      type: DirectoryOrCreate
+    name: credential-provider
