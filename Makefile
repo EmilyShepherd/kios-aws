@@ -2,7 +2,7 @@
 bin:
 	mkdir bin
 
-bin/aws-bootstrap: bin
+bin/aws-bootstrap: bin cmd/bootstrap/*.go
 	CGO_ENABLED=0 go build -o $@ -ldflags="-w -s" ./cmd/bootstrap/
 
 bin/ecr-credential-provider: bin
