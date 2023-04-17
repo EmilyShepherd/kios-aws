@@ -1,4 +1,7 @@
 
+.PHONY: all
+all: bin/aws-bootstrap bin/ecr-credential-provider bin/aws-iam-authenticator
+
 bin:
 	mkdir bin
 
