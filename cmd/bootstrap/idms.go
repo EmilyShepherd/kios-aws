@@ -63,9 +63,8 @@ func (s ImdsSession) GetMetadata(data string) ([]byte, error) {
     return nil, fmt.Errorf("Could not create request: %s", err)
   }
 
-  req.Header = http.Header{
-    "X-aws-ec2-metadata-token": {s.token},
-  }
+  req.Header.Add("X-aws-ec2-metadata-token", s.token)
+
   resp, err := http.DefaultClient.Do(req)
   if err != nil {
     return nil, fmt.Errorf("Could not complete request: %s", err)
