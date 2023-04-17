@@ -67,4 +67,9 @@ func main() {
     fmt.Printf("Could not save kubelet configuration", err);
     os.Exit(1)
   }
+
+  if err = saveCredentialProviderConfig(); err != nil {
+    fmt.Printf("Could not save credential provider configuration: %s", err);
+    os.Exit(1)
+  }
 }

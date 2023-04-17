@@ -91,3 +91,26 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 
   return nil
 }
+
+// Creates the credential provider configuration file for image
+// credentials
+func saveCredentialProviderConfig() error {
+  config := &kubelet.CredentialProviderConfig{}
+  config.Providers = append(config.Providers, kubelet.CredentialProvider{
+    Name: "ecr-credential-provider",
+    MatchImages: []string{
+      "*.dkr.ecr.*.amazonaws.com",
+      "*.dkr.ecr.*.amazonaws.cn",
+      "*.dkr.ecr-fips.*.amazonaws.com",
+      "*.dkr.ecr.us-iso-east-1.c2s.ic.gov",
+      "*.dkr.ecr.us-isob-east-1.sc2s.sgov.gov",
+    },
+    APIVersion: "credentialprovider.kubelet.k8s.io/v1beta1",
+    Args: []string{"get-credentials"},
+  })
+
+  providerConfig, _ := yaml.Marshal(&config)
+  os.WriteFile("/tmp/credential-providers.yaml", providerConfig, 0644)
+
+  return nil
+}
