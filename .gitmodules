@@ -1,0 +1,6 @@
+[submodule "ecr-credential-provider"]
+	path = ecr-credential-provider
+	url = https://github.com/kubernetes/cloud-provider-aws.git
+[submodule "kubelet-credential-provider"]
+	path = kubelet-credential-provider
+	url = https://github.com/kubernetes-sigs/aws-iam-authenticator.git
