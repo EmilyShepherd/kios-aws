@@ -10,7 +10,7 @@ import (
   "sigs.k8s.io/yaml"
 )
 
-const ImdsUrl = "http://localhost:8800/" //"http://169.254.169.254/latest/"
+const ImdsUrl = "http://169.254.169.254/latest/"
 
 // A small helper class designed to make calls to the IMDS endpoint with
 // a v2 token.
