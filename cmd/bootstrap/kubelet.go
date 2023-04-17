@@ -4,6 +4,7 @@ package main
 import (
   "fmt"
   "os"
+  "io"
   "encoding/base64"
 
   "sigs.k8s.io/yaml"
@@ -89,6 +90,26 @@ func saveKubeConfig(config *MetadataInformation, imds *ImdsSession) error {
   return nil
 }
 
+// Reads the given template file from disk and unmarshals it as YAML
+func yamlFromFile(filename string, obj interface{}) error {
+  file, err := os.Open("/etc/templates/" + filename)
+  if err != nil {
+    return fmt.Errorf("Could not open template file %s: %s", filename, err)
+  }
+
+  data, err := io.ReadAll(file)
+  if err != nil {
+    return fmt.Errorf("Could not read file %s: %s", filename, err)
+  }
+
+  if err := yaml.Unmarshal(data, obj); err != nil {
+    return fmt.Errorf("Could not parse YAML from file %s: %s", filename, err)
+  }
+
+  return nil
+}
+
+
 // Loads the template kubeconfig file from disk, adds the relavent
 // settings to it, before remarshalling it as YAML and saving it back to
 // disk
@@ -97,6 +118,9 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
   instanceId, _ := imds.GetString("meta-data/instance-id")
 
   kubeletConfig := kubelet.KubeletConfiguration{}
+  if err := yamlFromFile("config.yaml", &kubeletConfig); err != nil {
+    return err
+  }
 
   kubeletConfig.ProviderID = "aws:///" + az + "/" + instanceId
 
@@ -109,7 +133,12 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 // Creates the credential provider configuration file for image
 // credentials
 func saveCredentialProviderConfig() error {
-  config := &kubelet.CredentialProviderConfig{}
+  config := kubelet.CredentialProviderConfig{}
+
+  if err := yamlFromFile("credential-providers.yaml", &config); err != nil {
+    return err
+  }
+
   config.Providers = append(config.Providers, kubelet.CredentialProvider{
     Name: "ecr-credential-provider",
     MatchImages: []string{
