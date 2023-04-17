@@ -30,7 +30,7 @@ func NewImdsSession(ttl int) (*ImdsSession, error) {
 }
 
 // Grabs a new token from the IMDSv2 endpoint with the given TTL
-func (s ImdsSession) RefreshToken(ttl int) error {
+func (s *ImdsSession) RefreshToken(ttl int) error {
   req, err := http.NewRequest(http.MethodPut, ImdsUrl + "api/token", nil)
   if err != nil {
     return fmt.Errorf("Could not create request: %s", err)
@@ -57,7 +57,7 @@ func (s ImdsSession) RefreshToken(ttl int) error {
 
 // Loads arbitrary metadata from the IMDS endpoint, and returns it as
 // a byte array
-func (s ImdsSession) GetMetadata(data string) ([]byte, error) {
+func (s *ImdsSession) GetMetadata(data string) ([]byte, error) {
   req, err := http.NewRequest("GET", ImdsUrl + data, nil)
   if err != nil {
     return nil, fmt.Errorf("Could not create request: %s", err)
@@ -80,7 +80,7 @@ func (s ImdsSession) GetMetadata(data string) ([]byte, error) {
 
 // Loads arbitrary function from the IMDS endpoint, and returns it as a
 // string
-func (s ImdsSession) GetString(data string) (string, error) {
+func (s *ImdsSession) GetString(data string) (string, error) {
   raw, err := s.GetMetadata(data)
   if err != nil {
     return "", err
@@ -91,7 +91,7 @@ func (s ImdsSession) GetString(data string) (string, error) {
 
 // Loads the user data for the instance, assumes that it is YAML and
 // unmarshals it as a MetadataInformation object
-func (s ImdsSession) GetUserData() (*MetadataInformation, error) {
+func (s *ImdsSession) GetUserData() (*MetadataInformation, error) {
   raw, err := s.GetMetadata("user-data")
   if err != nil {
     return nil, err
