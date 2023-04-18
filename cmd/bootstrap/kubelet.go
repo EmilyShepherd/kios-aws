@@ -60,6 +60,7 @@ func saveKubeConfig(config *MetadataInformation, imds *ImdsSession) error {
       AuthInfo: kubeconfig.AuthInfo{
         Exec: &kubeconfig.ExecConfig{
           Command: "/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec/aws-iam-authenticator",
+          APIVersion: "client.authentication.k8s.io/v1beta1",
           Args: []string{
             "token",
             "-i",
