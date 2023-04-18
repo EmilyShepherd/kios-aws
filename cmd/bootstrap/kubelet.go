@@ -6,10 +6,12 @@ import (
   "os"
   "io"
   "encoding/base64"
+  "time"
 
   "sigs.k8s.io/yaml"
   kubelet "k8s.io/kubelet/config/v1beta1"
   kubeconfig "k8s.io/client-go/tools/clientcmd/api/v1"
+  metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const ClusterCADir = "/etc/kubernetes/pki"
@@ -149,7 +151,10 @@ func saveCredentialProviderConfig() error {
       "*.dkr.ecr.us-iso-east-1.c2s.ic.gov",
       "*.dkr.ecr.us-isob-east-1.sc2s.sgov.gov",
     },
-    APIVersion: "credentialprovider.kubelet.k8s.io/v1beta1",
+    DefaultCacheDuration: &metav1.Duration{
+      Duration: 12 * time.Hour,
+    },
+    APIVersion: "credentialprovider.kubelet.k8s.io/v1alpha1",
     Args: []string{"get-credentials"},
   })
 
