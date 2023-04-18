@@ -63,13 +63,15 @@ func main() {
     os.Exit(1)
   }
 
-  if err = saveKubeletConfiguration(config, imds); err != nil {
-    fmt.Printf("Could not save kubelet configuration", err);
+  if err = saveCredentialProviderConfig(); err != nil {
+    fmt.Printf("Could not save credential provider configuration: %s", err);
     os.Exit(1)
   }
 
-  if err = saveCredentialProviderConfig(); err != nil {
-    fmt.Printf("Could not save credential provider configuration: %s", err);
+  // Saving the config file should always be the last operation, as its
+  // appearance is what triggers init to restart the kubelet.
+  if err = saveKubeletConfiguration(config, imds); err != nil {
+    fmt.Printf("Could not save kubelet configuration", err);
     os.Exit(1)
   }
 }
