@@ -37,6 +37,27 @@ func copyBinaries(binaries []string) error {
 	return nil
 }
 
+// Assuming this is running in the kubelet's bootstrap run, it is
+// acceptable to simply write the desired hostname to the host's
+// /etc/hostname file. Init will pick this ip and auto set the hostname
+// before restarting the kubelet.
+func setHostnameFile(imds *ImdsSession) error {
+	// In AWS, the hostname should not be configurable. This is because we
+	// use the EC2 role to authenticate the node with the kubernetes-api.
+	// The aws-iam-authenticator setup will normally force nodes to auth
+	// as their private DNS hostname.
+	hostname, err := imds.GetMetadata("meta-data/hostname")
+	if err != nil {
+		return fmt.Errorf("Could not determine the AWS-provided hostname: %s", err)
+	}
+
+	if err := os.WriteFile("/host/etc/hostname", hostname, 0644); err != nil {
+		return fmt.Errorf("Could not write hostname file: %s", err)
+	}
+
+	return nil
+}
+
 func main() {
 	copyBinaries([]string{"aws-iam-authenticator", "ecr-credential-provider"})
 
@@ -54,6 +75,11 @@ func main() {
 
 	if err = saveClusterCA(config.ApiServer.CA); err != nil {
 		fmt.Printf("Could not save cluster CA: %s\n", err)
+		os.Exit(1)
+	}
+
+	if err = setHostnameFile(imds); err != nil {
+		fmt.Printf("%s", err)
 		os.Exit(1)
 	}
 
