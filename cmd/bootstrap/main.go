@@ -93,6 +93,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// During the bootstrap run, the kubelet may attempt to generate its
+	// own serving certificate. This is useless as a) it is self signed
+	// and b) it is likely to be using the wrong IP address, or missing
+	// the host name.
+	// We have serverTLSBootstrap turned on, so kubelet will request its
+	// certificate from the api-server - we just need to ensure that there
+	// isn't an unexpired certificate present so that this process is
+	// triggered.
+	os.Remove("/host/var/lib/kubelet/pki/kubelet.crt")
+
 	// Saving the config file should always be the last operation, as its
 	// appearance is what triggers init to restart the kubelet.
 	if err = saveKubeletConfiguration(config, imds); err != nil {
