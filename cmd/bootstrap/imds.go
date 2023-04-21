@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+	"time"
 
 	"sigs.k8s.io/yaml"
 )
@@ -21,8 +22,19 @@ type ImdsSession struct {
 func NewImdsSession(ttl int) (*ImdsSession, error) {
 	s := ImdsSession{}
 
-	if err := s.RefreshToken(ttl); err != nil {
-		return nil, fmt.Errorf("Could not get IMDS Token: %s", err)
+	attempts := 0
+	for {
+		err := s.RefreshToken(ttl)
+		if err == nil {
+			return &s, nil
+		}
+
+		attempts += 1
+		if attempts == 10 {
+			return nil, fmt.Errorf("Could not get IMDS Token: %s", err)
+		}
+
+		time.Sleep(1 * time.Second)
 	}
 
 	return &s, nil
