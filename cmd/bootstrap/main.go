@@ -8,33 +8,53 @@ import (
 
 const BinaryDstDir = "/host/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec/"
 
-func copyBinaries(binaries []string) error {
+var Binaries = []string{"aws-iam-authenticator", "ecr-credential-provider"}
+
+func copyBinaries() (chan error, error) {
+	c := make(chan error)
+
 	if err := os.MkdirAll(BinaryDstDir, 0755); err != nil {
-		return fmt.Errorf("Could not create binary directory: %s", err)
+		return nil, fmt.Errorf("Could not create binary directory: %s", err)
 	}
 
-	for _, bin := range binaries {
-		src, err := os.Open("/bin/" + bin)
-		if err != nil {
-			return fmt.Errorf("Could not open binary: %s", err)
-		}
-		defer src.Close()
+	for _, bin := range Binaries {
+		go func(binary string) {
+			src, err := os.Open("/bin/" + binary)
+			if err != nil {
+				c <- fmt.Errorf("Could not open binary: %s", err)
+				return
+			}
+			defer src.Close()
 
-		dst, _ := os.Create(BinaryDstDir + bin)
-		if err != nil {
-			return fmt.Errorf("Could not create binary copy: %s", err)
-		}
-		defer dst.Close()
+			dst, _ := os.Create(BinaryDstDir + binary)
+			if err != nil {
+				c <- fmt.Errorf("Could not create binary copy: %s", err)
+				return
+			}
+			defer dst.Close()
 
-		if _, err := io.Copy(dst, src); err != nil {
-			return fmt.Errorf("Could not copy binary: %s", err)
-		}
-		if err := dst.Chmod(0755); err != nil {
-			return fmt.Errorf("Could not update permissions of binary: %s", err)
-		}
+			if _, err := io.Copy(dst, src); err != nil {
+				c <- fmt.Errorf("Could not copy binary: %s", err)
+				return
+			}
+			if err := dst.Chmod(0755); err != nil {
+				c <- fmt.Errorf("Could not update permissions of binary: %s", err)
+				return
+			}
+			c <- nil
+		}(bin)
 	}
 
-	return nil
+	return c, nil
+}
+
+func waitForBinaries(c chan error) {
+	for range Binaries {
+		if err := <-c; err != nil {
+			fmt.Printf("%s\n", err)
+			os.Exit(1)
+		}
+	}
 }
 
 // Assuming this is running in the kubelet's bootstrap run, it is
@@ -59,7 +79,11 @@ func setHostnameFile(imds *ImdsSession) error {
 }
 
 func main() {
-	copyBinaries([]string{"aws-iam-authenticator", "ecr-credential-provider"})
+	c, err := copyBinaries()
+	if err != nil {
+		fmt.Printf("%s\n", err)
+		os.Exit(1)
+	}
 
 	imds, err := NewImdsSession(30)
 	if err != nil {
@@ -102,6 +126,10 @@ func main() {
 	// isn't an unexpired certificate present so that this process is
 	// triggered.
 	os.Remove("/host/var/lib/kubelet/pki/kubelet.crt")
+
+	// Finally wait for the copy tasks to finish and check that there were
+	// no errors
+	waitForBinaries(c)
 
 	// Saving the config file should always be the last operation, as its
 	// appearance is what triggers init to restart the kubelet.
