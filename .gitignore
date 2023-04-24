@@ -1,1 +1,5 @@
 bin/
+*.img
+import-snapshot
+.datapart
+.bootpart
