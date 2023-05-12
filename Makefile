@@ -21,7 +21,7 @@ EFI=../core/.build/bootpart/EFI/Boot/Bootx64.efi
 efi_size=$(shell ls -s $(EFI) | cut -f1 -d' ')
 boot_blocks=$(shell expr $(efi_size) + 70)
 size.boot.img=$(shell expr $(boot_blocks) '*' 2)
-.boot.img:
+.boot.img: $(EFI)
 	mkfs.vfat -C $@ -f1 $(boot_blocks)
 	mcopy -si $@ ../core/.build/bootpart/EFI ::
 
