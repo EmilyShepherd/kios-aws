@@ -38,12 +38,12 @@ datapart/modules:
 	curl -L $(RELEASE_URL)/kios-modules-x86_64.tar.gz | gunzip -c | tar -xC $@
 endif
 
+extra_images:
+	./hack/generate-eks-images.sh
+
 OCI=datapart/data/oci/overlay-layers/layers.json
-$(OCI): $(wildcard datapart/meta/etc/kubernetes/manifests/*.yaml)
-	./hack/prime-containers.sh \
-		602401143452.dkr.ecr.eu-central-1.amazonaws.com/amazon-k8s-cni:v1.12.2-eksbuild.1 \
-		602401143452.dkr.ecr.eu-central-1.amazonaws.com/amazon-k8s-cni-init:v1.12.2-eksbuild.1 \
-		602401143452.dkr.ecr.eu-central-1.amazonaws.com/eks/kube-proxy:v1.25.6-minimal-eksbuild.1
+$(OCI): $(wildcard datapart/meta/etc/kubernetes/manifests/*.yaml) extra_images
+	./hack/prime-containers.sh
 
 efi_size=$(shell ls -s $(EFI) | cut -f1 -d' ')
 boot_blocks=$(shell expr $(efi_size) + 70)

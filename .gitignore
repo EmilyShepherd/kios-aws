@@ -6,3 +6,4 @@ import-snapshot
 bootpart
 datapart/data
 datapart/modules
+extra_images
