@@ -3,3 +3,4 @@ bin/
 import-snapshot
 .datapart
 .bootpart
+bootpart

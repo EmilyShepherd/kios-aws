@@ -1,4 +1,9 @@
 
+PROJECT_URL=https://github.com/EmilyShepherd/kiOS
+VERSION=v1.25.0-alpha1
+RELEASE_URL=$(PROJECT_URL)/releases/download/$(VERSION)
+MODE=local
+
 .PHONY: all
 all: bin/aws-bootstrap bin/ecr-credential-provider bin/aws-iam-authenticator
 
@@ -16,14 +21,21 @@ bin/aws-iam-authenticator: bin
 	$(MAKE) -C kubelet-credential-provider bin
 	cp kubelet-credential-provider/_output/bin/aws-iam-authenticator $@
 
-
+ifeq ($(MODE),local)
 EFI=../core/.build/bootpart/EFI/Boot/Bootx64.efi
+else
+EFI=bootpart/EFI/Boot/Bootx64.efi
+$(EFI):
+	mkdir -p $(dir $(EFI))
+	curl -Lo $@ $(RELEASE_URL)/kios-x86_64.efi
+endif
+
 efi_size=$(shell ls -s $(EFI) | cut -f1 -d' ')
 boot_blocks=$(shell expr $(efi_size) + 70)
 size.boot.img=$(shell expr $(boot_blocks) '*' 2)
 .boot.img: $(EFI)
 	mkfs.vfat -C $@ -f1 $(boot_blocks)
-	mcopy -si $@ ../core/.build/bootpart/EFI ::
+	mcopy -si $@ $(subst Boot/Bootx64.efi,,$(EFI)) ::
 
 .data.img:
 	fakeroot mkfs.ext4 -d ../core/.build/datapart $@ 600M
