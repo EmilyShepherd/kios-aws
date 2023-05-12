@@ -1,6 +1,6 @@
 
 PROJECT_URL=https://github.com/EmilyShepherd/kiOS
-VERSION=v1.25.0-alpha1
+VERSION=v1.25.0-alpha2
 RELEASE_URL=$(PROJECT_URL)/releases/download/$(VERSION)
 MODE=local
 
@@ -80,26 +80,8 @@ kios.img: .start.img .boot.img .data.img .end.img
 		echo w; \
 	} | fdisk $@
 
-S3_BUCKET := kios.redcoat.dev
-S3_KEY := kios.img
-import-snapshot: kios.img
-	aws s3 cp $< s3://$(S3_BUCKET)/$(S3_KEY)
-	aws ec2 import-snapshot --disk-container "UserBucket={S3Bucket=$(S3_BUCKET),S3Key=$(S3_KEY)}" | jq -r .ImportTaskId > $@
-
-snapshot := $(shell aws ec2 describe-import-snapshot-tasks --import-task-ids $(shell cat import-snapshot) | jq -r '[.ImportSnapshotTasks[0].SnapshotTaskDetail | to_entries[].value | select(type == "string")] | @tsv')
-AMI_NAME ?= kios
-
-ifeq ($(word 3,$(snapshot)),completed)
-register-image:
-	aws ec2 register-image \
-		--name $(AMI_NAME) \
-		--architecture x86_64 \
-		--boot-mode uefi \
-		--ena-support \
-		--root-device-name /dev/xvda \
-		--block-device-mappings \
-			DeviceName=/dev/xvda,Ebs={SnapshotId=$(word 2,$(snapshot))}
-endif
+register-image: kios.img
+	./hack/import-image $< $(VERSION)
 
 .PHONY: clean
 clean:

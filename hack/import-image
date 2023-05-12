@@ -1,0 +1,57 @@
+#!/bin/bash
+#
+#
+
+S3_BUCKET=kios.redcoat.dev
+S3_KEY=kios.img
+AWS_REGION=eu-central-1
+
+aws s3 cp $1 s3://${S3_BUCKET}/${S3_KEY}
+
+printf "Importing Snapshot"
+import=$(aws ec2 import-snapshot \
+  --disk-container "UserBucket={S3Bucket=${S3_BUCKET},S3Key=${S3_KEY}}" | jq -r .ImportTaskId)
+
+while true
+do
+  sleep 10
+  printf "."
+  status=$(aws ec2 describe-import-snapshot-tasks --import-task-ids $import | \
+    jq -r ".ImportSnapshotTasks[].SnapshotTaskDetail.Status")
+  if test "${status}" == "completed"
+  then
+    break
+  fi
+done
+
+echo " Done"
+
+snapshot=$(aws ec2 describe-import-snapshot-tasks --import-task-ids $import | \
+  jq -r ".ImportSnapshotTasks[].SnapshotTaskDetail.SnapshotId")
+
+image=$(aws ec2 register-image \
+  --name $2 \
+  --architecture x86_64 \
+  --boot-mode uefi \
+  --ena-support \
+  --root-device-name /dev/xvda \
+  --block-device-mappings DeviceName=/dev/xvda,Ebs={SnapshotId=$snapshot} | \
+  jq -r .ImageId)
+
+aws ec2 modify-image-attribute --image-id "${image}" \
+  --launch-permission "Add=[{Group=all}]"
+
+printf "${AWS_REGION}\t${image}\n"
+
+for region in $(aws ec2 describe-regions --output text | cut -f4)
+do
+  if test "${region}" != "${AWS_REGION}"
+  then
+    new_image=$(aws --region "${region}" ec2 copy-image \
+      --name $2 \
+      --source-image-id $image \
+      --source-region ${AWS_REGION} | jq -r .ImageId)
+
+    printf "${region}\t${new_image}\n"
+  fi
+done
