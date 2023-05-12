@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dhcpcd
+  namespace: kube-node-lease
+spec:
+  containers:
+  - image: docker.io/emilyls/dhcp:9.4.1
+    args:
+      - --noarp
+      - --persistent
+      - eth0
+    name: dhcpcd
+    volumeMounts:
+    - mountPath: /etc
+      name: config
+    - mountPath: /var/run/dhcpcd
+      name: runtime
+      subPath: run
+    - mountPath: /var/db/dhcpcd
+      name: runtime
+      subPath: db
+    # Currently we require running as root but this may change
+    securityContext:
+      privileged: true
+      capabilities:
+        drop:
+        - ALL
+        add:
+        - NET_ADMIN
+        - NET_RAW
+  hostNetwork: true
+  priorityClassName: system-node-critical
+  tolerations:
+  - operator: Exists
+  volumes:
+  - hostPath:
+      path: /etc
+      type: Directory
+    name: config
+  - emptyDir: {}
+    name: runtime
+

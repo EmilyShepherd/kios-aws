@@ -6,7 +6,7 @@ metadata:
 spec:
   restartPolicy: OnFailure
   containers:
-  - image: emilyls/aws-bootstrap:0.0.0-test2
+  - image: docker.io/emilyls/aws-bootstrap:v1.25.0-alpha4
     name: aws-bootstrap
     volumeMounts:
     - mountPath: /host/var/lib/kubelet
