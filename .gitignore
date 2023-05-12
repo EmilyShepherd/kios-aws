@@ -4,3 +4,5 @@ import-snapshot
 .datapart
 .bootpart
 bootpart
+datapart/data
+datapart/modules
