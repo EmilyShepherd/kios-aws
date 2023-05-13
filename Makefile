@@ -18,7 +18,7 @@ bin/ecr-credential-provider: bin
 	cp ecr-credential-provider/ecr-credential-provider $@
 
 bin/aws-iam-authenticator: bin
-	$(MAKE) -C kubelet-credential-provider bin
+	$(MAKE) -C kubelet-credential-provider bin GOTAGS="no_add no_server no_init no_verify"
 	cp kubelet-credential-provider/_output/bin/aws-iam-authenticator $@
 
 ifeq ($(MODE),local)
