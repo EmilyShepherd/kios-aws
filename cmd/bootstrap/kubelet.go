@@ -19,7 +19,7 @@ const ClusterCAPath = ClusterCADir + "/ca.crt"
 // The path where the kubelet expects its various configurs to exist.
 // These are hard coded into kios' init, so cannot be changed here.
 const KubeletKubeconfigPath = "/etc/kubernetes/kubelet.conf"
-const KubeletConfigurationPath = "/var/lib/kubelet/config.yaml"
+const KubeletConfigurationPath = "/etc/kubernetes/config.yaml"
 const CredentialProviderConfigPath = "/etc/kubernetes/credential-providers.yaml"
 
 // Saves the given cluster CA to file after first base 64 decoding it
