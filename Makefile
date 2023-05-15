@@ -76,6 +76,9 @@ kios.img: .start.img .boot.img .data.img .end.img
 		echo 2; \
 		echo $(shell expr $(size.boot.img) + $(size.start.img)); \
 		echo -0; \
+		echo t; \
+		echo 2; \
+		echo 97aac693-d920-465a-94fe-eb59fc86dfaa; \
 		\
 		echo w; \
 	} | fdisk $@
