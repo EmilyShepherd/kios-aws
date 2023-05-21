@@ -45,43 +45,8 @@ OCI=datapart/data/oci/overlay-layers/layers.json
 $(OCI): $(wildcard datapart/meta/etc/kubernetes/manifests/*.yaml) extra_images
 	./hack/prime-containers.sh
 
-efi_size=$(shell ls -s $(EFI) | cut -f1 -d' ')
-boot_blocks=$(shell expr $(efi_size) + 70)
-size.boot.img=$(shell expr $(boot_blocks) '*' 2)
-.boot.img: $(EFI)
-	mkfs.vfat -C $@ -f1 $(boot_blocks)
-	mcopy -si $@ $(subst Boot/Bootx64.efi,,$(EFI)) ::
-
-.data.img: $(OCI) datapart/modules
-	fakeroot mkfs.ext4 -d datapart $@ 600M
-
-size.start.img := 2048
-size.end.img := 33
-.start.img .end.img:
-	dd if=/dev/zero of=$@ bs=512 count=$(size$(@))
-
-kios.img: .start.img .boot.img .data.img .end.img
-	cat $^ > $@
-	{ \
-		echo g; \
-		\
-		echo n; \
-		echo 1; \
-		echo $(size.start.img); \
-		echo +$(shell expr $(size.boot.img) - 1); \
-		echo t; \
-		echo 1; \
-		\
-		echo n; \
-		echo 2; \
-		echo $(shell expr $(size.boot.img) + $(size.start.img)); \
-		echo -0; \
-		echo t; \
-		echo 2; \
-		echo 97aac693-d920-465a-94fe-eb59fc86dfaa; \
-		\
-		echo w; \
-	} | fdisk $@
+kios.img: $(OCI)
+	DATAPART_PATH=./datapart BOOTPART_PATH=../core/.build/bootpart ../core/scripts/create-image
 
 register-image: kios.img
 	./hack/import-image $< $(VERSION)
