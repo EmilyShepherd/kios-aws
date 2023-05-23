@@ -1,0 +1,240 @@
+# Node Pod
+#
+# The node pod performs a number of node-critical tasks in order to get
+# the node correctly setup and running on AWS, then falls back to a
+# small pause container so that the logs of the actions taken are
+# preserved.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: node
+  namespace: kube-system
+spec:
+  restartPolicy: OnFailure
+  initContainers:
+
+  # Parted Container
+  #
+  # Used to resize the data partition to fill up 100% of the space on
+  # the physical disk. This is useful as the AMI snapshot is relatively
+  # small <1GB however in almost all situations, we are likely to have a
+  # larger disk than this. It is very common in cloud providers to do an
+  # early stretch-to-size at boot time.
+  - image: docker.io/emilyls/parted:v2
+    name: parted
+    securityContext:
+      # Required to allow parted to open the block device
+      privileged: true
+    args:
+    - "-sf"
+    - /dev/nvme0n1
+    - resizepart
+    - "2"
+    - "100%"
+
+  # Resize2fs container
+  #
+  # Similar to the above, resize2fs' job is to expand the ext4 file
+  # system to fill the newly resized data partition.
+  - image: docker.io/emilyls/resize2fs:v1
+    name: resize2fs
+    securityContext:
+      # Required to allow resize2fs to open the block device
+      privileged: true
+    args:
+    - /dev/nvme0n1p2
+
+  # Modprobe Container
+  #
+  # This is used to auto load the modules that we require for correct
+  # runtime.
+  - name: modprobe
+    image: docker.io/emilyls/modprobe:v1-alpha1
+    args:
+    - -a
+
+    # Tiny Power Button is a small ACPI driver which automatically sends
+    # signals to init when a hw pwr button is pressed. This is simulated
+    # in AWS when it wants the instance to shutdown. This is technically
+    # optional, however not handling power button presses will cause
+    # instances to stay in the "Shutting Down" / "Terminating" state for
+    # a while when AWS tries to remove a node, during which time the
+    # node will continue operating as per. After a while, AWS' grace
+    # period will expire, and the node will be ungracefully killed.
+    #
+    # NB: If you want to load the more fully fleged ACPI Button module,
+    # this has to be unloaded first (in which case, it is recommended
+    # that you appropriately signal kiOS to shutdown on power button
+    # press detection via acpid / whatever else you are running).
+    - tiny-power-button
+
+    # AWS instances use ENA network cards
+    - ena
+
+    # kiOS has a strict policy of "not unless we know we'll need it"
+    # policy. As a result, it _doesn't_ support shebangs out of the box.
+    # This is fine as all of the kiOS early boot code / bootstrap
+    # containers exclusively use compiled binaries. However this is
+    # almost certainly going to be unexpected / undesirable to the
+    # "average" cluster operator so we'll be kind and auto load it for
+    # the AWS distribution. If you do not want this, you cna always
+    # unload this module to remove system support for shebangs.
+    - binfmt-script
+
+    volumeMounts:
+    # As a wise man once said, "in order to be able to load kernel
+    # modules, we must first be able to see the kernel modules"
+    - mountPath: /lib/modules
+      name: modules
+      readOnly: true
+
+    securityContext:
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+        - ALL
+        add:
+        # Required to allow modprobe to load the modules
+        - SYS_MODULE
+
+  # DHCPD Container
+  #
+  # This pod is responsible for speaking to the AWS VPC DHCP server, to
+  # obtain its appropriate IPv6* and IPv4 addresses.
+  #
+  # Currently this Pod does not set other DHCP provided items such as NTP,
+  # DNS or hostname. But we hope to possibly set this in the future.
+  #
+  # *AWS VPCs do not support IPv6 SLAAC. Instead, they use DHCPv6 to hand
+  # out individual IPv6 addresses. As a result this daemon is required,
+  # even in IPv6 VPCs.
+  - name: dhcpcd
+    image: docker.io/emilyls/dhcp:9.4.1
+    args:
+    # Technically, when receiving an IP address from a DHCP server, the
+    # client _should_ perform an ARP check for the address to ensure
+    # that it is not in use by another host on the network. The AWS VPCs
+    # work mean that they are very locked down, so it isn't possible for
+    # another host to have an IP address, if we've been given it. So we
+    # can save a few seconds at boot time by skipping the ARP check.
+    - --noarp
+
+    # Normally DHCP undoes all of its settings when it terminates. We do
+    # not want it to do so in this context, as its common for DHCP to be
+    # restarted during the boot sequence when the system's hostname
+    # changes. We do not want to interrupt our internet connectivity.
+    - --oneshot
+
+    # kiOS does not run udev, so thankfully we can guarantee that there
+    # will be an ethernet adaptor called "eth0".
+    - eth0
+    volumeMounts:
+    - mountPath: /var/run/dhcpcd
+      name: runtime
+      subPath: run
+    - mountPath: /var/db/dhcpcd
+      name: runtime
+      subPath: db
+    # Currently we require running as root but this may change
+    securityContext:
+      privileged: true
+      capabilities:
+        drop:
+        - ALL
+        add:
+        # Required to allow DHCPCD to set IP addresses and routes on the
+        # ethernet card, based on the response from the DHCP server.
+        - NET_ADMIN
+
+        # Required so that DHCPCD can send out DHCP messages which are
+        # not one of the managed Linux Socket Types.
+        - NET_RAW
+
+  # AWS Bootstrap Container
+  #
+  # This container performs the AWS-specific actions required to
+  # bootstrap the node, namely reading from the AWS Instance Metadata
+  # Service for the details of the cluster we should be joining, and
+  # using these to setup the appropriate kubelet configuration.
+  - name: aws-bootstrap
+    image: docker.io/emilyls/aws-bootstrap:v1.25.0-alpha5
+    volumeMounts:
+    - mountPath: /host/etc/kubernetes
+      name: etc
+    - mountPath: /host/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
+      name: credential-provider
+    - mountPath: /host/etc/hostname
+      name: hostname
+    securityContext:
+      # Running as root is required so that files can be created with
+      # the correct permissions
+      runAsNonRoot: false
+      capabilities:
+        drop:
+        - ALL
+
+  containers:
+  - name: pause
+    # This is the infra / pause container used in the rest of the system
+    # already
+    image: registry.k8s.io/pause:3.6
+    # Pause container does not need many permissions
+    securityContext:
+      readOnlyRootFilesystem: true
+      runAsNonRoot: true
+      capabilities:
+        drop:
+        - ALL
+
+  # Host Network Access is required for two reasons:
+  #   - These bootstrap containers run very early on in the node's life
+  #     cycle, at a point that we are almost guaranteed not to have a
+  #     working Container Networking setup yet. We do not want that to
+  #     prevent this containers from running.
+  #   - DHCPD's job is to configure the host's network. Clearly, to do
+  #     that, it requires Host Network Access.
+  hostNetwork: true
+
+  # This is a static pod, so this is largely ignored (as static pods
+  # exist outside of the normal scheduling rules). However it is
+  # included for information. This pod is abolutely node critical.
+  priorityClassName: system-node-critical
+
+  volumes:
+  # Kubelet Configuration and Authentication files will be placed in
+  # this directory. Kubelet in kiOS knows to look in this directory for
+  # everything it needs.
+  - hostPath:
+      path: /etc/kubernetes
+      type: DirectoryOrCreate
+    name: etc
+
+  # The two binaries required to teach kubelet how to a) Login to ECR
+  # and b) authenticate itself with the api-server, will be placed in
+  # this directory.
+  - hostPath:
+      path: /usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
+      type: DirectoryOrCreate
+    name: credential-provider
+
+  # It is very important that the hostname is correct for AWS Instance
+  # Profile Authentication with the api-server to work. As a result the
+  # bootstrap pod will always set the system hostname to whatever it is
+  # told AWS expects it to be.
+  - hostPath:
+      path: /etc/hostname
+      type: FileOrCreate
+    name: hostname
+
+  # The modprobe container requires read access to the host's module
+  # directory.
+  - hostPath:
+      path: /lib/modules
+      type: DirectoryOrCreate
+    name: modules
+
+  # DHCPCD uses this as scratch space for its run / pid files etc, so
+  # that the rest of its filesystem can be read only.
+  - emptyDir: {}
+    name: runtime
+
