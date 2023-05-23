@@ -1,6 +1,6 @@
 
 PROJECT_URL=https://github.com/EmilyShepherd/kiOS
-VERSION=v1.25.0-alpha2
+VERSION=v1.25.0-alpha3
 RELEASE_URL=$(PROJECT_URL)/releases/download/$(VERSION)
 MODE=local
 
