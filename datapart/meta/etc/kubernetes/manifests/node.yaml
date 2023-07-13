@@ -156,7 +156,7 @@ spec:
   # Service for the details of the cluster we should be joining, and
   # using these to setup the appropriate kubelet configuration.
   - name: aws-bootstrap
-    image: docker.io/emilyls/aws-bootstrap:v1.25.0-alpha5
+    image: docker.io/emilyls/aws-bootstrap:v1.25.0-alpha7
     volumeMounts:
     - mountPath: /host/etc/kubernetes
       name: etc
