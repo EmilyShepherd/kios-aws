@@ -25,7 +25,7 @@ ifeq ($(MODE),local)
 EFI=../core/.build/bootpart/EFI/Boot/Bootx64.efi
 
 datapart/modules:
-	cp -r ../core/.build/datapart/modules $@
+	cp -r ../core/.build/root/lib/modules $@
 
 else
 EFI=bootpart/EFI/Boot/Bootx64.efi
