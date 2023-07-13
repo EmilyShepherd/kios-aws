@@ -1,6 +1,7 @@
 package main
 
 import (
+	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -14,7 +15,8 @@ type ApiServer struct {
 }
 
 type Node struct {
-	Taints []string `json:"taints"`
+	Taints []v1.Taint        `json:"taints"`
+	Labels map[string]string `json:"labels"`
 }
 
 type MetadataInformation struct {

@@ -102,6 +102,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = saveNodeLabels(config); err != nil {
+		fmt.Printf("Could not save node-labels file: %s\n", err)
+		os.Exit(1)
+	}
+
 	if err = setHostnameFile(imds); err != nil {
 		fmt.Printf("%s", err)
 		os.Exit(1)

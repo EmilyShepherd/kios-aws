@@ -21,6 +21,7 @@ const ClusterCAPath = ClusterCADir + "/ca.crt"
 const KubeletKubeconfigPath = "/etc/kubernetes/kubelet.conf"
 const KubeletConfigurationPath = "/etc/kubernetes/config.yaml"
 const CredentialProviderConfigPath = "/etc/kubernetes/credential-providers.yaml"
+const NodeLabelsPath = "/etc/kubernetes/node-labels"
 
 // Saves the given cluster CA to file after first base 64 decoding it
 func saveClusterCA(ca string) error {
@@ -122,12 +123,31 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 		return err
 	}
 
+	kubeletConfig.RegisterWithTaints = config.Node.Taints
 	kubeletConfig.ProviderID = "aws:///" + az + "/" + instanceId
 
 	kubelet, _ := yaml.Marshal(&kubeletConfig)
 	os.WriteFile("/host"+KubeletConfigurationPath, kubelet, 0644)
 
 	return nil
+}
+
+// Generates the node-labels file, which is used by kiOS to set the
+// labels which kubelet should register itself with
+func saveNodeLabels(config *MetadataInformation) error {
+	f, err := os.OpenFile("/host"+NodeLabelsPath, os.O_APPEND|os.O_WRONLY, 0)
+	if err != nil {
+		return err
+	}
+
+	for key, value := range config.Node.Labels {
+		f.Write([]byte(key))
+		f.Write([]byte(": "))
+		f.Write([]byte(value))
+		f.Write([]byte("\n"))
+	}
+
+	return f.Close()
 }
 
 // Creates the credential provider configuration file for image
