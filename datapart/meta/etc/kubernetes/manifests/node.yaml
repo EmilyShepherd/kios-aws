@@ -10,7 +10,6 @@ metadata:
   name: node
   namespace: kube-system
 spec:
-  restartPolicy: OnFailure
   initContainers:
 
   # Parted Container
@@ -174,17 +173,34 @@ spec:
         - ALL
 
   containers:
-  - name: pause
-    # This is the infra / pause container used in the rest of the system
-    # already
-    image: registry.k8s.io/pause:3.6
-    # Pause container does not need many permissions
+
+  # Send crio logs to container stdout so that they can be viewed via
+  # standard `kubectl logs node-xxx crio` command.
+  - name: crio
+    image: docker.io/emilyls/tinycat:v1-alpha2
     securityContext:
       readOnlyRootFilesystem: true
-      runAsNonRoot: true
       capabilities:
         drop:
         - ALL
+    volumeMounts:
+    - name: crio-log
+      readOnly: true
+      mountPath: /in
+
+  # Send kubelet logs to container stdout so that they can be viewed via
+  # standard `kubectl logs node-xxx kubelet` command.
+  - name: kubelet
+    image: docker.io/emilyls/tinycat:v1-alpha2
+    securityContext:
+      readOnlyRootFilesystem: true
+      capabilities:
+        drop:
+        - ALL
+    volumeMounts:
+    - name: kubelet-log
+      readOnly: true
+      mountPath: /in
 
   # Host Network Access is required for two reasons:
   #   - These bootstrap containers run very early on in the node's life
@@ -232,6 +248,13 @@ spec:
       path: /lib/modules
       type: DirectoryOrCreate
     name: modules
+
+  - hostPath:
+      path: /var/run/crio.log
+    name: crio-log
+  - hostPath:
+      path: /var/run/kubelet.log
+    name: kubelet-log
 
   # DHCPCD uses this as scratch space for its run / pid files etc, so
   # that the rest of its filesystem can be read only.
