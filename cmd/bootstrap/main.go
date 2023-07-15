@@ -102,7 +102,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = saveNodeLabels(config); err != nil {
+	if err = saveNodeLabels(config, imds); err != nil {
 		fmt.Printf("Could not save node-labels file: %s\n", err)
 		os.Exit(1)
 	}
