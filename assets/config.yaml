@@ -14,8 +14,6 @@ authorization:
     cacheAuthorizedTTL: 0s
     cacheUnauthorizedTTL: 0s
 cgroupDriver: cgroupfs
-clusterDNS:
-- 10.100.0.10
 clusterDomain: cluster.local
 cpuManagerReconcilePeriod: 0s
 evictionPressureTransitionPeriod: 0s

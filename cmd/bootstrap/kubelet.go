@@ -115,10 +115,6 @@ func yamlFromFile(filename string, obj interface{}) error {
 // settings to it, before remarshalling it as YAML and saving it back to
 // disk
 func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) error {
-	az, _ := imds.GetString("meta-data/placement/availability-zone")
-	instanceId, _ := imds.GetString("meta-data/instance-id")
-	ip, _ := imds.GetString("meta-data/local-ipv4")
-
 	kubeletConfig := kubelet.KubeletConfiguration{}
 	if err := yamlFromFile("config.yaml", &kubeletConfig); err != nil {
 		return err
@@ -129,15 +125,31 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 	}
 
 	kubeletConfig.RegisterWithTaints = config.Node.Taints
-	kubeletConfig.ProviderID = "aws:///" + az + "/" + instanceId
 
-	// EKS' default service CIDR is 10.100.0.0/16 _unless_ the VPC CIDR is
-	// in the 10.0.0.0/8 - in this case, the service CIDR is 172.20.0.0/16.
-	// By convention, the cluster dns service cluster IP is x.x.0.10
-	if strings.HasPrefix(ip, "10.") {
-		kubeletConfig.ClusterDNS = []string{"172.20.0.10"}
-	} else {
-		kubeletConfig.ClusterDNS = []string{"10.100.0.10"}
+	// In the spirit on unopinionated-ness, we will accept it if a
+	// ProviderID has been specified.
+	// NB: If you are running with a EKS-provided cluster, the control
+	// plane WILL instantly delete any nodes which do not have an
+	// expected ProviderID, so override with caution!
+	if kubeletConfig.ProviderID == "" {
+		az, _ := imds.GetString("meta-data/placement/availability-zone")
+		instanceId, _ := imds.GetString("meta-data/instance-id")
+		kubeletConfig.ProviderID = "aws:///" + az + "/" + instanceId
+	}
+
+	// If the defined KubeletConfiguration has already set the ClusterDNS
+	// values, we won't make an attempt to use the EKS-default values.
+	if len(kubeletConfig.ClusterDNS) == 0 {
+		// EKS' default service CIDR is 10.100.0.0/16 _unless_ the VPC CIDR is
+		// in the 10.0.0.0/8 - in this case, the service CIDR is 172.20.0.0/16.
+		// By convention, the cluster dns service cluster IP is x.x.0.10
+		ip, _ := imds.GetString("meta-data/local-ipv4")
+
+		if strings.HasPrefix(ip, "10.") {
+			kubeletConfig.ClusterDNS = []string{"172.20.0.10"}
+		} else {
+			kubeletConfig.ClusterDNS = []string{"10.100.0.10"}
+		}
 	}
 
 	kubelet, _ := yaml.Marshal(&kubeletConfig)
