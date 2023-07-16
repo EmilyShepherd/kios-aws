@@ -15,8 +15,9 @@ type ApiServer struct {
 }
 
 type Node struct {
-	Taints []v1.Taint        `json:"taints"`
-	Labels map[string]string `json:"labels"`
+	Taints               []v1.Taint        `json:"taints"`
+	Labels               map[string]string `json:"labels"`
+	KubeletConfiguration string            `json:"kubeletConfiguration,omitempty"`
 }
 
 type MetadataInformation struct {

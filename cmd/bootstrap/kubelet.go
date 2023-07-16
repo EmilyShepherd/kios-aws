@@ -123,6 +123,10 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 	if err := yamlFromFile("config.yaml", &kubeletConfig); err != nil {
 		return err
 	}
+	if err := yaml.Unmarshal([]byte(config.Node.KubeletConfiguration), &kubeletConfig); err != nil {
+		fmt.Printf("WARNING: Bad YAML in KubeletConfiguration. Ignoring. %s", err)
+		fmt.Printf("DEBUG: %s", config.Node.KubeletConfiguration)
+	}
 
 	kubeletConfig.RegisterWithTaints = config.Node.Taints
 	kubeletConfig.ProviderID = "aws:///" + az + "/" + instanceId
