@@ -38,6 +38,8 @@ func saveClusterCA(ca string) error {
 		return fmt.Errorf("Could not write CA certificate to disk: %s", err)
 	}
 
+	info(fmt.Sprintf("Cluster CA written to disk: %s", ClusterCAPath))
+
 	return nil
 }
 
@@ -89,6 +91,8 @@ func saveKubeConfig(config *MetadataInformation, imds *ImdsSession) error {
 		return fmt.Errorf("Could not write Kubeconfig to disk: %s", err)
 	}
 
+	info(fmt.Sprintf("KubeConfig written to disk: %s", KubeletKubeconfigPath))
+
 	return nil
 }
 
@@ -131,15 +135,24 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 	// NB: If you are running with a EKS-provided cluster, the control
 	// plane WILL instantly delete any nodes which do not have an
 	// expected ProviderID, so override with caution!
-	if kubeletConfig.ProviderID == "" {
+	if kubeletConfig.ProviderID != "" {
+		warn("ProviderID is manually set. Use with caution")
+	} else {
+		info("ProviderID is not manually set. Creating EKS-expected providerID from metadata")
+
 		az, _ := imds.GetString("meta-data/placement/availability-zone")
 		instanceId, _ := imds.GetString("meta-data/instance-id")
 		kubeletConfig.ProviderID = "aws:///" + az + "/" + instanceId
 	}
+	info(fmt.Sprintf("Using ProviderID: %s", kubeletConfig.ProviderID))
 
 	// If the defined KubeletConfiguration has already set the ClusterDNS
 	// values, we won't make an attempt to use the EKS-default values.
-	if len(kubeletConfig.ClusterDNS) == 0 {
+	if len(kubeletConfig.ClusterDNS) != 0 {
+		info("Cluster DNS is manually set")
+	} else {
+		info("Cluster DNS is not manually set, using EKS default")
+
 		// EKS' default service CIDR is 10.100.0.0/16 _unless_ the VPC CIDR is
 		// in the 10.0.0.0/8 - in this case, the service CIDR is 172.20.0.0/16.
 		// By convention, the cluster dns service cluster IP is x.x.0.10
@@ -151,9 +164,12 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 			kubeletConfig.ClusterDNS = []string{"10.100.0.10"}
 		}
 	}
+	info(fmt.Sprintf("Using Cluster DNS: %v", kubeletConfig.ClusterDNS))
 
 	kubelet, _ := yaml.Marshal(&kubeletConfig)
 	os.WriteFile("/host"+KubeletConfigurationPath, kubelet, 0644)
+
+	info(fmt.Sprintf("Kubelet Configuration written to disk: %s", KubeletConfigurationPath))
 
 	return nil
 }
@@ -185,6 +201,8 @@ func saveCredentialProviderConfig() error {
 
 	providerConfig, _ := yaml.Marshal(&config)
 	os.WriteFile("/host"+CredentialProviderConfigPath, providerConfig, 0644)
+
+	info(fmt.Sprintf("Credential Provider Config written to disk: %s", CredentialProviderConfigPath))
 
 	return nil
 }
