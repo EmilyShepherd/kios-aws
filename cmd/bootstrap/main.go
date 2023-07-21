@@ -85,6 +85,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	systemSocket, err := NewSystemSocket()
+	if err != nil {
+		fmt.Printf("Could not open a connection to the system socket: %s\n", err)
+		os.Exit(1)
+	}
+
 	imds, err := NewImdsSession(30)
 	if err != nil {
 		fmt.Printf("Could not create IMDS Session: %s\n", err)
@@ -122,6 +128,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err = saveKubeletConfiguration(config, imds); err != nil {
+		fmt.Printf("Could not save kubelet configuration", err)
+		os.Exit(1)
+	}
+
 	// During the bootstrap run, the kubelet may attempt to generate its
 	// own serving certificate. This is useless as a) it is self signed
 	// and b) it is likely to be using the wrong IP address, or missing
@@ -136,10 +147,6 @@ func main() {
 	// no errors
 	waitForBinaries(c)
 
-	// Saving the config file should always be the last operation, as its
-	// appearance is what triggers init to restart the kubelet.
-	if err = saveKubeletConfiguration(config, imds); err != nil {
-		fmt.Printf("Could not save kubelet configuration", err)
-		os.Exit(1)
-	}
+	// Finally, let the system know we are ready to restart the kubelet.
+	systemSocket.SendCmd(CmdRestartKubelet)
 }

@@ -164,6 +164,8 @@ spec:
       name: credential-provider
     - mountPath: /host/etc/hostname
       name: hostname
+    - mountPath: /run/system.sock
+      name: system-socket
     securityContext:
       # Running as root is required so that files can be created with
       # the correct permissions
@@ -217,6 +219,12 @@ spec:
   priorityClassName: system-node-critical
 
   volumes:
+  - hostPath:
+      path: /run/system.sock
+      type: Socket
+    name: system-socket
+
+
   # Kubelet Configuration and Authentication files will be placed in
   # this directory. Kubelet in kiOS knows to look in this directory for
   # everything it needs.
