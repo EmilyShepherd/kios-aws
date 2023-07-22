@@ -14,10 +14,15 @@ type ApiServer struct {
 	Endpoint string `json:"endpoint"`
 }
 
+type ContainerRuntimeConfiguration struct {
+	ImageVolumes string `json:"imageVolumes"`
+}
+
 type Node struct {
-	Taints               []v1.Taint        `json:"taints"`
-	Labels               map[string]string `json:"labels"`
-	KubeletConfiguration string            `json:"kubeletConfiguration,omitempty"`
+	Taints               []v1.Taint                    `json:"taints"`
+	Labels               map[string]string             `json:"labels"`
+	KubeletConfiguration string                        `json:"kubeletConfiguration,omitempty"`
+	ContainerRuntime     ContainerRuntimeConfiguration `json:"containerRuntime,omitempty"`
 }
 
 type MetadataInformation struct {

@@ -158,12 +158,10 @@ spec:
   - name: aws-bootstrap
     image: docker.io/emilyls/aws-bootstrap:v1.25.0-alpha8
     volumeMounts:
-    - mountPath: /host/etc/kubernetes
+    - mountPath: /host/etc
       name: etc
     - mountPath: /host/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
       name: credential-provider
-    - mountPath: /host/etc/hostname
-      name: hostname
     - mountPath: /run/system.sock
       name: system-socket
     securityContext:
@@ -229,8 +227,8 @@ spec:
   # this directory. Kubelet in kiOS knows to look in this directory for
   # everything it needs.
   - hostPath:
-      path: /etc/kubernetes
-      type: DirectoryOrCreate
+      path: /etc
+      type: Directory
     name: etc
 
   # The two binaries required to teach kubelet how to a) Login to ECR
@@ -240,16 +238,6 @@ spec:
       path: /usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
       type: DirectoryOrCreate
     name: credential-provider
-
-  # It is very important that the hostname is correct for AWS Instance
-  # Profile Authentication with the api-server to work. As a result the
-  # bootstrap pod will always set the system hostname to whatever it is
-  # told AWS expects it to be.
-  - hostPath:
-      path: /etc/hostname
-      type: FileOrCreate
-    name: hostname
-
   # The modprobe container requires read access to the host's module
   # directory.
   - hostPath:

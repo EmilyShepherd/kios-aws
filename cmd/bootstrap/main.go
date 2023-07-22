@@ -133,6 +133,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	crioUpdated, err := saveCrioConfiguration(config.Node.ContainerRuntime)
+	if err != nil {
+		fmt.Printf("Could not save crio configuration: %s", err)
+		os.Exit(1)
+	} else if crioUpdated {
+		warn("MetadataConfiguration reconfigures the container runtime. Crio will be restarted")
+		systemSocket.SendCmd(CmdRestartCrio)
+	}
+
 	// During the bootstrap run, the kubelet may attempt to generate its
 	// own serving certificate. This is useless as a) it is self signed
 	// and b) it is likely to be using the wrong IP address, or missing
