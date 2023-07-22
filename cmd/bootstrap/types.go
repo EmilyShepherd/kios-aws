@@ -21,8 +21,14 @@ type ContainerRuntimeConfiguration struct {
 type Node struct {
 	Taints               []v1.Taint                    `json:"taints"`
 	Labels               map[string]string             `json:"labels"`
+	MaxPods              Limits                        `json:"maxPods"`
 	KubeletConfiguration string                        `json:"kubeletConfiguration,omitempty"`
 	ContainerRuntime     ContainerRuntimeConfiguration `json:"containerRuntime,omitempty"`
+}
+
+type Limits struct {
+	Set    bool `json:"set"`
+	Offset int  `json:"offset"`
 }
 
 type MetadataInformation struct {

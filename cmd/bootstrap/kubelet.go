@@ -166,6 +166,23 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 	}
 	info(fmt.Sprintf("Using Cluster DNS: %v", kubeletConfig.ClusterDNS))
 
+	// If using AWS VPC CNI with prefix mode turned off, there is a limit
+	// to the number of IP addresses (and therefore pods) each node can
+	// have. The only way to represent this currently is by setting a pod
+	// limit at the kubelet level.
+	// If this is on, we'll look up the number of IP addresses that this
+	// node can have (minus those not used by AWS VPC CNI). An offset can
+	// be applied if we know pods with hostNetwork will be on the node as
+	// these do not use up one of the IP addresse.
+	// The default offset is 3 for:
+	//   - The node pod
+	//   - An assumed kube-proxy DaemonSet
+	//   - An assumed aws-vpc-cni DaemonSet
+	if config.Node.MaxPods.Set {
+		instanceType, _ := imds.GetString("meta-data/instance-type")
+		kubeletConfig.MaxPods = int32(PodLimits[instanceType] + config.Node.MaxPods.Offset)
+	}
+
 	kubelet, _ := yaml.Marshal(&kubeletConfig)
 	os.WriteFile("/host"+KubeletConfigurationPath, kubelet, 0644)
 

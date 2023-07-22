@@ -108,7 +108,14 @@ func (s *ImdsSession) GetUserData() (*MetadataInformation, error) {
 		return nil, err
 	}
 
-	data := MetadataInformation{}
+	data := MetadataInformation{
+		Node: Node{
+			MaxPods: Limits{
+				Set:    true,
+				Offset: 3,
+			},
+		},
+	}
 	yaml.Unmarshal(raw, &data)
 
 	return &data, nil
