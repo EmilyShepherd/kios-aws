@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const BinaryDstDir = "/host/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec/"
+const BinaryDstDir = "/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec/"
 
 var Binaries = []string{"aws-iam-authenticator", "ecr-credential-provider"}
 
@@ -71,7 +71,7 @@ func setHostnameFile(imds *ImdsSession) error {
 		return fmt.Errorf("Could not determine the AWS-provided hostname: %s", err)
 	}
 
-	if err := os.WriteFile("/host/etc/hostname", hostname, 0644); err != nil {
+	if err := os.WriteFile("/etc/hostname", hostname, 0644); err != nil {
 		return fmt.Errorf("Could not write hostname file: %s", err)
 	}
 

@@ -158,9 +158,9 @@ spec:
   - name: aws-bootstrap
     image: docker.io/emilyls/aws-bootstrap:v1.25.0-alpha8
     volumeMounts:
-    - mountPath: /host/etc
+    - mountPath: /etc
       name: etc
-    - mountPath: /host/usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
+    - mountPath: /usr/libexec/kubernetes/kubelet-plugins/credential-provider/exec
       name: credential-provider
     - mountPath: /run/system.sock
       name: system-socket

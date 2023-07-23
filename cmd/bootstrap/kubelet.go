@@ -25,7 +25,7 @@ const CredentialProviderConfigPath = "/etc/kubernetes/credential-providers.yaml"
 
 // Saves the given cluster CA to file after first base 64 decoding it
 func saveClusterCA(ca string) error {
-	if err := os.MkdirAll("/host"+ClusterCADir, 0755); err != nil {
+	if err := os.MkdirAll(ClusterCADir, 0755); err != nil {
 		return fmt.Errorf("Could not create Cluster CA Directory: %s", err)
 	}
 
@@ -34,7 +34,7 @@ func saveClusterCA(ca string) error {
 		return fmt.Errorf("Could not decode CA certificate: %s", err)
 	}
 
-	if err = os.WriteFile("/host"+ClusterCAPath, clusterCA, 0644); err != nil {
+	if err = os.WriteFile(ClusterCAPath, clusterCA, 0644); err != nil {
 		return fmt.Errorf("Could not write CA certificate to disk: %s", err)
 	}
 
@@ -87,7 +87,7 @@ func saveKubeConfig(config *MetadataInformation, imds *ImdsSession) error {
 		return fmt.Errorf("Could not marshal KubeConfig YAML: %s", err)
 	}
 
-	if err = os.WriteFile("/host"+KubeletKubeconfigPath, kubeConfig, 0644); err != nil {
+	if err = os.WriteFile(KubeletKubeconfigPath, kubeConfig, 0644); err != nil {
 		return fmt.Errorf("Could not write Kubeconfig to disk: %s", err)
 	}
 
@@ -96,12 +96,13 @@ func saveKubeConfig(config *MetadataInformation, imds *ImdsSession) error {
 	return nil
 }
 
-// Reads the given template file from disk and unmarshals it as YAML
+// Reads the given file from disk and unmarshals it as YAML
 func yamlFromFile(filename string, obj interface{}) error {
-	file, err := os.Open("/etc/templates/" + filename)
+	file, err := os.Open("/etc/" + filename)
 	if err != nil {
-		return fmt.Errorf("Could not open template file %s: %s", filename, err)
+		return fmt.Errorf("Could not open file %s: %s", filename, err)
 	}
+	defer file.Close()
 
 	data, err := io.ReadAll(file)
 	if err != nil {
@@ -119,9 +120,28 @@ func yamlFromFile(filename string, obj interface{}) error {
 // settings to it, before remarshalling it as YAML and saving it back to
 // disk
 func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) error {
-	kubeletConfig := kubelet.KubeletConfiguration{}
-	if err := yamlFromFile("config.yaml", &kubeletConfig); err != nil {
-		return err
+	kubeletConfig := kubelet.KubeletConfiguration{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: kubelet.SchemeGroupVersion.Identifier(),
+			Kind:       "KubeletConfiguration",
+		},
+		Authentication: kubelet.KubeletAuthentication{
+			X509: kubelet.KubeletX509Authentication{
+				ClientCAFile: ClusterCAPath,
+			},
+		},
+		ServerTLSBootstrap: true,
+		ShutdownGracePeriod: metav1.Duration{
+			Duration: 30 * time.Second,
+		},
+		ShutdownGracePeriodCriticalPods: metav1.Duration{
+			Duration: 10 * time.Second,
+		},
+		StaticPodPath: "/etc/kubernetes/manifests",
+	}
+
+	if err := yamlFromFile(KubeletConfigurationPath, &kubeletConfig); err != nil {
+		warn(err.Error())
 	}
 	if err := yaml.Unmarshal([]byte(config.Node.KubeletConfiguration), &kubeletConfig); err != nil {
 		fmt.Printf("WARNING: Bad YAML in KubeletConfiguration. Ignoring. %s", err)
@@ -184,7 +204,7 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 	}
 
 	kubelet, _ := yaml.Marshal(&kubeletConfig)
-	os.WriteFile("/host"+KubeletConfigurationPath, kubelet, 0644)
+	os.WriteFile(KubeletConfigurationPath, kubelet, 0644)
 
 	info(fmt.Sprintf("Kubelet Configuration written to disk: %s", KubeletConfigurationPath))
 
@@ -194,10 +214,15 @@ func saveKubeletConfiguration(config *MetadataInformation, imds *ImdsSession) er
 // Creates the credential provider configuration file for image
 // credentials
 func saveCredentialProviderConfig() error {
-	config := kubelet.CredentialProviderConfig{}
+	config := kubelet.CredentialProviderConfig{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: kubelet.SchemeGroupVersion.Identifier(),
+			Kind:       "CredentialProviderConfig",
+		},
+	}
 
-	if err := yamlFromFile("credential-providers.yaml", &config); err != nil {
-		return err
+	if err := yamlFromFile(CredentialProviderConfigPath, &config); err != nil {
+		warn(err.Error())
 	}
 
 	config.Providers = append(config.Providers, kubelet.CredentialProvider{
@@ -217,7 +242,7 @@ func saveCredentialProviderConfig() error {
 	})
 
 	providerConfig, _ := yaml.Marshal(&config)
-	os.WriteFile("/host"+CredentialProviderConfigPath, providerConfig, 0644)
+	os.WriteFile(CredentialProviderConfigPath, providerConfig, 0644)
 
 	info(fmt.Sprintf("Credential Provider Config written to disk: %s", CredentialProviderConfigPath))
 

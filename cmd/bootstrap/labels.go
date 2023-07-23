@@ -19,7 +19,7 @@ func writeLabel(f *os.File, key string, value string) error {
 // Generates the node-labels file, which is used by kiOS to set the
 // labels which kubelet should register itself with
 func saveNodeLabels(config *MetadataInformation, imds *ImdsSession) error {
-	f, err := os.OpenFile("/host"+NodeLabelsPath, os.O_APPEND|os.O_WRONLY, 0)
+	f, err := os.OpenFile(NodeLabelsPath, os.O_APPEND|os.O_WRONLY, 0)
 	if err != nil {
 		return err
 	}

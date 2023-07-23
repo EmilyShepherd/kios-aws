@@ -25,7 +25,7 @@ func writeSetting(f *os.File, key string, value string) error {
 // Generates the node-labels file, which is used by kiOS to set the
 // labels which kubelet should register itself with
 func saveCrioConfiguration(config ContainerRuntimeConfiguration) (bool, error) {
-	f, err := os.OpenFile("/host"+CrioConfigurationPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
+	f, err := os.OpenFile(CrioConfigurationPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0755)
 	if err != nil {
 		return false, err
 	}
