@@ -5,44 +5,51 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"sigs.k8s.io/yaml"
 )
 
-const ImdsUrl = "http://169.254.169.254/latest/"
+const ImdsIPv4 = "169.254.169.254"
+const ImdsIPv6 = "[fd00:ec2::254]"
 
 // A small helper class designed to make calls to the IMDS endpoint with
 // a v2 token.
 type ImdsSession struct {
 	token string
+	Url   string
 }
 
 // Creates a new ImdsSession object with a valid token
 func NewImdsSession(ttl int) (*ImdsSession, error) {
-	s := ImdsSession{}
+	c := make(chan *ImdsSession)
 
-	attempts := 0
-	for {
-		err := s.RefreshToken(ttl)
-		if err == nil {
-			return &s, nil
-		}
+	// There is not really an easy way to tell in advance if the IPv6
+	// metadata service is enabled (even if the host has IPv6, the IPv6
+	// IMDS endpoint has to be explictly enabled - thanks AWS =_=) so we
+	// just have to connect to both and use whichever doesn't fail.
+	for _, ip := range []string{ImdsIPv4, ImdsIPv6} {
+		go func(ip string) {
+			s := ImdsSession{
+				Url: fmt.Sprintf("http://%s/latest/", ip),
+			}
 
-		attempts += 1
-		if attempts == 10 {
-			return nil, fmt.Errorf("Could not get IMDS Token: %s", err)
-		}
-
-		time.Sleep(1 * time.Second)
+			if err := s.RefreshToken(ttl); err != nil {
+				warn(err.Error())
+			} else {
+				c <- &s
+			}
+		}(ip)
 	}
 
-	return &s, nil
+	s := <-c
+	info(fmt.Sprintf("IMDS Session created, using %s", s.Url))
+
+	return s, nil
 }
 
 // Grabs a new token from the IMDSv2 endpoint with the given TTL
 func (s *ImdsSession) RefreshToken(ttl int) error {
-	req, err := http.NewRequest(http.MethodPut, ImdsUrl+"api/token", nil)
+	req, err := http.NewRequest(http.MethodPut, s.Url+"api/token", nil)
 	if err != nil {
 		return fmt.Errorf("Could not create request: %s", err)
 	}
@@ -69,7 +76,7 @@ func (s *ImdsSession) RefreshToken(ttl int) error {
 // Loads arbitrary metadata from the IMDS endpoint, and returns it as
 // a byte array
 func (s *ImdsSession) GetMetadata(data string) ([]byte, error) {
-	req, err := http.NewRequest("GET", ImdsUrl+data, nil)
+	req, err := http.NewRequest("GET", s.Url+data, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Could not create request: %s", err)
 	}
