@@ -37,25 +37,26 @@ apiServer:
 
 ## AMI IDs
 
-`v1.25.0-alpha4` is available as a prebuilt AMI in the following
+`v1.25.0-alpha5` is available as a prebuilt AMI in the following
 regions:
 
 | Region         | AMI ID                |
 | -------------- | --------------------- |
-| ap-south-1     | ami-0264f4da7e1b01430 |
-| eu-north-1     | ami-0d9f1142e241b9954 |
-| eu-west-3      | ami-036cae17c95e46565 |
-| eu-west-2      | ami-08d58dde54547beda |
-| eu-west-1      | ami-010eca3b0e0ace5d4 |
-| ap-northeast-3 | ami-0622566835ba6d9e1 |
-| ap-northeast-2 | ami-0c123f8f3a0ab5521 |
-| ap-northeast-1 | ami-09035a8cb6b101c1d |
-| ca-central-1   | ami-0ce61282059ab4127 |
-| sa-east-1      | ami-0a5b1a00f64771f78 |
-| ap-southeast-1 | ami-072c4201e81866fa5 |
-| ap-southeast-2 | ami-0e183b0333d592948 |
-| eu-central-1   | ami-0a605557f381f1143 |
-| us-east-1      | ami-0a25072a47ea8ef55 |
-| us-east-2      | ami-001c7d4b312c28419 |
-| us-west-1      | ami-07aa2878992730381 |
-| us-west-2      | ami-0227cd3b28d55dae8 |
+| ap-south-1     | ami-091385bc01c832f8a |
+| eu-north-1     | ami-0b6ee538b14d1eb9f |
+| eu-west-3      | ami-0761c49849b23e748 |
+| eu-west-2      | ami-0904f04285477df47 |
+| eu-west-1      | ami-04fe4d24565904862 |
+| ap-northeast-3 | ami-02150d2484d0f6647 |
+| ap-northeast-2 | ami-00ba994c5cb7ec4c8 |
+| ap-northeast-1 | ami-0d976f199e5a9e537 |
+| ca-central-1   | ami-0be8171cb5c479eb3 |
+| sa-east-1      | ami-0c63ed6c1aabfc90f |
+| ap-southeast-1 | ami-0af4c59c69ed2ceb1 |
+| ap-southeast-2 | ami-069a6f91bb08699b2 |
+| eu-central-1   | ami-000b96a1a3b9f67ef |
+| us-east-1      | ami-0fc40df5277b96f3a |
+| us-east-2      | ami-09a52f3edd7258d16 |
+| us-west-1      | ami-0fa269838296e4745 |
+| us-west-2      | ami-026aa572b82ded35d |
+
