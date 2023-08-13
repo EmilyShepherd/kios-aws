@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 )
 
@@ -34,7 +35,7 @@ func NewImdsSession(ttl int) (*ImdsSession, error) {
 			}
 
 			if err := s.RefreshToken(ttl); err != nil {
-				warn(err.Error())
+				klog.Warning(err.Error())
 			} else {
 				c <- &s
 			}
@@ -42,7 +43,7 @@ func NewImdsSession(ttl int) (*ImdsSession, error) {
 	}
 
 	s := <-c
-	info(fmt.Sprintf("IMDS Session created, using %s", s.Url))
+	klog.Infof("IMDS Session created, using %s", s.Url)
 
 	return s, nil
 }

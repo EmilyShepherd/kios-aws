@@ -3,7 +3,8 @@ package main
 // Hard coded list of maximum pod IP addresses by instance type. This is
 // calculated by querying the AWS API and performing the following
 // application:
-//    MaxENIsPerInstance * (MaxIPsPerENI - 1)
+//
+//	MaxENIsPerInstance * (MaxIPsPerENI - 1)
 //
 // We minus one from each interface because AWS VPC CNI does not use the
 // primary IP address of any interface.

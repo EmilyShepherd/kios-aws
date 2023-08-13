@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/EmilyShepherd/kios-go-sdk/pkg/bootstrap"
 	"k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,16 +15,12 @@ type ApiServer struct {
 	Endpoint string `json:"endpoint"`
 }
 
-type ContainerRuntimeConfiguration struct {
-	ImageVolumes string `json:"imageVolumes"`
-}
-
 type Node struct {
-	Taints               []v1.Taint                    `json:"taints"`
-	Labels               map[string]string             `json:"labels"`
-	MaxPods              Limits                        `json:"maxPods"`
-	KubeletConfiguration string                        `json:"kubeletConfiguration,omitempty"`
-	ContainerRuntime     ContainerRuntimeConfiguration `json:"containerRuntime,omitempty"`
+	Taints               []v1.Taint                              `json:"taints"`
+	Labels               map[string]string                       `json:"labels"`
+	MaxPods              Limits                                  `json:"maxPods"`
+	KubeletConfiguration string                                  `json:"kubeletConfiguration,omitempty"`
+	ContainerRuntime     bootstrap.ContainerRuntimeConfiguration `json:"containerRuntime,omitempty"`
 }
 
 type Limits struct {
