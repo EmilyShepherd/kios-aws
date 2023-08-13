@@ -1,4 +1,4 @@
-module kios.redcoat.dev/aws
+module github.com/EmilyShepherd/kios-aws
 
 go 1.20
 

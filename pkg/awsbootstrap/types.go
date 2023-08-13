@@ -1,4 +1,4 @@
-package main
+package awsbootstrap
 
 import (
 	"github.com/EmilyShepherd/kios-go-sdk/pkg/bootstrap"

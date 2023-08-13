@@ -10,8 +10,8 @@ all: bin/aws-bootstrap bin/ecr-credential-provider bin/aws-iam-authenticator
 bin:
 	mkdir bin
 
-bin/aws-bootstrap: bin cmd/bootstrap/*.go
-	CGO_ENABLED=0 go build -trimpath -o $@ -ldflags="-w -s" ./cmd/bootstrap/
+bin/aws-bootstrap: bin pkg/*/*.go
+	CGO_ENABLED=0 go build -trimpath -o $@ -ldflags="-w -s" .
 
 bin/ecr-credential-provider: bin
 	$(MAKE) -C ecr-credential-provider ecr-credential-provider

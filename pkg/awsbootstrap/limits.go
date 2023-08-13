@@ -1,4 +1,4 @@
-package main
+package awsbootstrap
 
 // Hard coded list of maximum pod IP addresses by instance type. This is
 // calculated by querying the AWS API and performing the following
