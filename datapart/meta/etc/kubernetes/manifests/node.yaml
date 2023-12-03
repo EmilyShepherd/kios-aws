@@ -171,6 +171,8 @@ spec:
       capabilities:
         drop:
         - ALL
+        add:
+        - DAC_OVERRIDE
 
   containers:
 
